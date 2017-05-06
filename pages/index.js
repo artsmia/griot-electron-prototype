@@ -10,6 +10,7 @@ import AnnotatedImage from '../components/annotated-image'
 class Page extends Component {
   componentDidMount() {
     ipcRenderer.on('newImage', this.handleNewImage)
+    this.props.images.length == 0 && this.loadInitialState()
 
     document.ondragover = document.ondrop = ev => {
       ev.preventDefault()
@@ -46,6 +47,13 @@ class Page extends Component {
             min-width: 100vw;
         `}</style>
       </div>
+    )
+  }
+
+  loadInitialState() {
+    ipcRenderer.send(
+      'newImage',
+      '/Users/kolsen/Documents/mediabin-deployment/web/001000/200/10/1218/mia_5001702_full.jpg'
     )
   }
 }

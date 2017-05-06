@@ -4,6 +4,7 @@ const next = require('next')
 
 const sharp = require('sharp')
 const path = require('path')
+const fs = require('fs')
 
 const dev = process.env.NODE_ENV !== 'production'
 
@@ -80,12 +81,23 @@ app.on('activate', () => {
 ipcMain.on('newImage', (event, imagePath) => {
   const imageName = path.basename(imagePath, path.extname(imagePath))
   const tilePath = `static/tiles/${imageName}`
+  const processedFullImagePath = `${tilePath}/full.jpg`
 
-  sharp(imagePath)
-    .tile({ layout: 'google', size: 512 })
-    .toFile(tilePath, (err, vipsInfo) => {
-      const info = Object.assign(vipsInfo, { name: imageName })
-      console.info('processed new image', err, info)
-      event.sender.send('newImage', info)
+  if (fs.existsSync(processedFullImagePath)) {
+    sharp(processedFullImagePath).metadata().then(function(info) {
+      event.sender.send('newImage', Object.assign(info, { name: imageName }))
     })
+  } else {
+    sharp(imagePath)
+      .tile({ layout: 'google', size: 512 })
+      .toFile(tilePath, (err, vipsInfo) => {
+        const info = Object.assign(vipsInfo, { name: imageName })
+
+        fs.existsSync(processedFullImagePath) ||
+          fs.symlinkSync(imagePath, processedFullImagePath)
+
+        console.info('processed new image', err, info)
+        event.sender.send('newImage', info)
+      })
+  }
 })
