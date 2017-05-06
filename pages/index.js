@@ -1,14 +1,13 @@
 import { Component } from 'react'
 import { ipcRenderer } from 'electron'
 
+import { nextConnect } from '../store'
+import { addImage } from '../ducks/images'
+
 import Viewer from '../components/viewer'
+import AnnotatedImage from '../components/annotated-image'
 
-export default class extends Component {
-  state = {
-    input: '',
-    images: []
-  }
-
+class Page extends Component {
   componentDidMount() {
     ipcRenderer.on('newImage', this.handleNewImage)
 
@@ -28,17 +27,16 @@ export default class extends Component {
   }
 
   handleNewImage = (event, newImage) => {
-    console.info(newImage)
-    this.setState({ images: this.state.images.concat(newImage) })
+    this.props.dispatch(addImage(newImage))
   }
 
   render() {
+    const { images } = this.props
     return (
       <div>
-        {this.state.images &&
-          this.state.images.map(image => (
-            <Viewer key={image.name} {...image} />
-          ))}
+        {images.length > 0
+          ? images.map(image => <AnnotatedImage key={image.name} {...image} />)
+          : 'drag an image file'}
 
         <style>{`
           body {
@@ -51,3 +49,5 @@ export default class extends Component {
     )
   }
 }
+
+export default nextConnect(state => state)(Page)

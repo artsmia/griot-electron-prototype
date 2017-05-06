@@ -1,20 +1,27 @@
 import { Component } from 'react'
+import { nextConnect } from '../store'
 
-export default class extends Component {
+import { addImageAnnotation } from '../ducks/images'
+
+class Viewer extends Component {
   render() {
-    const { width, height, name } = this.props
+    const { width, height, name, notes } = this.props
 
     return (
       <div key={name} id={name}>
-        {name}
-        <div ref="map">
-          <style jsx>{`
-          div {
-            width: 99vw;
-            height: 800px;
-          }
-        `}</style>
-        </div>
+        <figure>
+          <div ref="map">
+            <style jsx>{`
+            div {
+              width: 100%;
+              min-height: 600px;
+            }
+          `}</style>
+          </div>
+          <figcaption>
+            {name} - {`contains ${notes ? notes.length : 0} notes`}
+          </figcaption>
+        </figure>
       </div>
     )
   }
@@ -27,7 +34,6 @@ export default class extends Component {
       crs: L.CRS.Simple,
       zoomControl: false
     })
-    console.info(width, height)
     this.map.setView([width / 2, height / 2], 0)
 
     this.tiles = L.museumTileLayer(`/static/tiles/${name}/{z}/{x}/{y}.jpg`, {
@@ -37,8 +43,72 @@ export default class extends Component {
     })
     this.tiles.addTo(this.map)
 
-    console.info('viewer mounted', width, height, name)
     window.map = this.map
     window.tiles = this.tiles
+
+    // set up drawing
+    require('leaflet-draw')
+    this.drawnItems = new L.FeatureGroup()
+    map.addLayer(this.drawnItems)
+    var drawControl = new L.Control.Draw({
+      draw: {
+        polyline: false,
+        circle: false
+      },
+      edit: {
+        featureGroup: this.drawnItems
+      }
+    })
+
+    map.addControl(drawControl)
+    map.on('draw:created', this.dispatchDraw.bind(this))
+    // map.on('draw:edited', save)
+    // map.on('draw:deleted', save)
+
+    this.updateMap()
+  }
+
+  dispatchDraw(annotation) {
+    this.props.dispatch(
+      addImageAnnotation({
+        image: this.props.name,
+        note: annotation
+      })
+    )
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const notesChanged = this.props.notes !== prevProps.notes
+    const focusLayerChanged = this.props.focusLayer !== prevProps.focusLayer
+
+    if (notesChanged || focusLayerChanged) {
+      this.updateMap(notesChanged, focusLayerChanged)
+    }
+  }
+
+  updateMap(notesChanged, focusLayerChanged) {
+    this.updateDrawnMapLayers()
+    if (focusLayerChanged) this.updateFocusedLayer()
+  }
+
+  updateDrawnMapLayers() {
+    const { notes } = this.props
+    notes &&
+      notes.map(note => {
+        if (!this.drawnItems.hasLayer(note.layer))
+          this.drawnItems.addLayer(note.layer)
+      })
+  }
+
+  updateFocusedLayer() {
+    const image = this.props.images.find(img => img.name == this.props.name)
+    if (image.focusLayer) {
+      const nextBounds = image.focusLayer.getBounds()
+      if (nextBounds) {
+        this.map.flyToBounds(nextBounds)
+      }
+    }
   }
 }
+
+export default nextConnect(state => state)(Viewer)

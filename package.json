@@ -15,10 +15,14 @@
     "electron-rebuild": "^1.5.7"
   },
   "dependencies": {
+    "leaflet-draw": "^0.4.9",
+    "museum-tile-layer": "artsmia/museumTileLayer#gh-pages",
     "next": "^2.0.0-beta",
+    "next-connect-redux": "^0.1.5",
     "react": "^15.4.2",
     "react-dom": "^15.4.2",
-    "museum-tile-layer": "artsmia/museumTileLayer#gh-pages",
+    "react-redux": "^5.0.4",
+    "redux": "^3.6.0",
     "sharp": "^0.17.3"
   }
 }
