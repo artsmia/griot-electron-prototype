@@ -1,3 +1,4 @@
+import { ipcRenderer } from 'electron'
 import { v4 } from 'node-uuid'
 
 const initialState = []
@@ -5,11 +6,17 @@ const initialState = []
 export default function reducer(state = initialState, action) {
   switch (action.type) {
     case 'ADD_IMAGE':
-      return state.concat(action.image)
+      const source = action.source
+      source && ipcRenderer.send('newImage', source)
+      return state.concat({ loading: true, path: action.imagePath })
+    case 'IMAGE_ADDED':
+      return state
+        .filter(image => {
+          return !image.loading
+        })
+        .concat(action.image)
     case 'CREATE_IMAGE_ANNOTATION':
       const newNote = {
-        title: 'new note',
-        description: 'what a night!',
         id: v4(),
         layer: action.image.note.layer,
         editing: true
@@ -57,8 +64,12 @@ export default function reducer(state = initialState, action) {
   }
 }
 
-export function addImage(image) {
-  return { type: 'ADD_IMAGE', image }
+export function addImage(source) {
+  return { type: 'ADD_IMAGE', source }
+}
+
+export function imageAdded(image) {
+  return { type: 'IMAGE_ADDED', image }
 }
 
 export function addImageAnnotation(image, note) {

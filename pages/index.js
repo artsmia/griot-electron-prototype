@@ -2,7 +2,7 @@ import { Component } from 'react'
 import { ipcRenderer } from 'electron'
 
 import { nextConnect } from '../store'
-import { addImage } from '../ducks/images'
+import { addImage, imageAdded } from '../ducks/images'
 
 import Viewer from '../components/viewer'
 import AnnotatedImage from '../components/annotated-image'
@@ -18,7 +18,7 @@ class Page extends Component {
 
     document.body.ondrop = ev => {
       const source = ev.dataTransfer.files[0].path
-      source && ipcRenderer.send('newImage', source)
+      this.props.dispatch(addImage(source))
       ev.preventDefault()
     }
   }
@@ -28,7 +28,7 @@ class Page extends Component {
   }
 
   handleNewImage = (event, newImage) => {
-    this.props.dispatch(addImage(newImage))
+    this.props.dispatch(imageAdded(newImage))
   }
 
   render() {
@@ -36,7 +36,12 @@ class Page extends Component {
     return (
       <div>
         {images.length > 0
-          ? images.map(image => <AnnotatedImage key={image.name} {...image} />)
+          ? images.map(
+              (image, index) =>
+                (image.loading
+                  ? <p key={index + '-loading-' + image.path}>…loading</p>
+                  : <AnnotatedImage key={image.name} {...image} />)
+            )
           : 'drag an image file'}
 
         <style>{`
@@ -51,9 +56,10 @@ class Page extends Component {
   }
 
   loadInitialState() {
-    ipcRenderer.send(
-      'newImage',
-      '/Users/kolsen/Documents/mediabin-deployment/web/001000/200/10/1218/mia_5001702_full.jpg'
+    this.props.dispatch(
+      addImage(
+        '/Users/kolsen/Documents/mediabin-deployment/web/001000/200/10/1218/mia_5001702_full.jpg'
+      )
     )
   }
 }
