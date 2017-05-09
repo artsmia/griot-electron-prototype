@@ -15,7 +15,7 @@ export default function reducer(state = initialState, action) {
           return !image.loading
         })
         .concat(action.image)
-    case 'CREATE_IMAGE_ANNOTATION':
+    case 'CREATE_NOTE':
       const newNote = {
         id: v4(),
         layer: action.image.note.layer,
@@ -33,7 +33,7 @@ export default function reducer(state = initialState, action) {
 
         return image
       })
-    case 'UPDATE_IMAGE_ANNOTATION':
+    case 'UPDATE_NOTE':
       return state.map(image => {
         if (image.name == action.image) {
           return {
@@ -47,7 +47,7 @@ export default function reducer(state = initialState, action) {
 
         return image
       })
-    case 'FOCUS_IMAGE_ANNOTATION':
+    case 'FOCUS_NOTE':
       return state.map(image => {
         if (image.name == action.image) {
           const note =
@@ -55,6 +55,27 @@ export default function reducer(state = initialState, action) {
             image.notes &&
             image.notes.find(n => n.id == action.note.id)
           return { ...image, focusLayer: note.layer }
+        }
+
+        return image
+      })
+    case 'IMAGE_DRAWS_EDITED':
+      // because `image.notes[].layer references the leaflet layer, this updates automatically…
+      // but it's mutating things which is bad in redux
+      return state
+    case 'IMAGE_DRAWS_DELETED':
+      return state.map(image => {
+        if (image.name == action.image) {
+          const remainingNotes = image.notes.filter(existingNote => {
+            return Object.values(action.layers._layers).find(
+              deletedLayer => deletedLayer !== existingNote.layer
+            )
+          })
+
+          return {
+            ...image,
+            notes: remainingNotes
+          }
         }
 
         return image
@@ -73,13 +94,21 @@ export function imageAdded(image) {
 }
 
 export function addImageAnnotation(image, note) {
-  return { type: 'CREATE_IMAGE_ANNOTATION', image, note }
+  return { type: 'CREATE_NOTE', image, note }
 }
 
 export function updateImageAnnotation(image, note, id) {
-  return { type: 'UPDATE_IMAGE_ANNOTATION', image, note, id }
+  return { type: 'UPDATE_NOTE', image, note, id }
 }
 
 export function focusImageAnnotation(image, note) {
-  return { type: 'FOCUS_IMAGE_ANNOTATION', image, note }
+  return { type: 'FOCUS_NOTE', image, note }
+}
+
+export function drawnLayersEdited(image, layers) {
+  return { type: 'IMAGE_DRAWS_EDITED', image, layers }
+}
+
+export function drawnLayersDeleted(image, layers) {
+  return { type: 'IMAGE_DRAWS_DELETED', image, layers }
 }

@@ -85,13 +85,19 @@ ipcMain.on('newImage', (event, imagePath) => {
 
   if (fs.existsSync(processedFullImagePath)) {
     sharp(processedFullImagePath).metadata().then(function(info) {
-      event.sender.send('newImage', Object.assign(info, { name: imageName }))
+      event.sender.send(
+        'newImage',
+        Object.assign(info, { path: imagePath, name: imageName })
+      )
     })
   } else {
     sharp(imagePath)
       .tile({ layout: 'google', size: 512 })
       .toFile(tilePath, (err, vipsInfo) => {
-        const info = Object.assign(vipsInfo, { name: imageName })
+        const info = Object.assign(vipsInfo, {
+          path: imagePath,
+          name: imageName
+        })
 
         fs.existsSync(processedFullImagePath) ||
           fs.symlinkSync(imagePath, processedFullImagePath)

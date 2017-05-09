@@ -1,7 +1,11 @@
 import { Component } from 'react'
 import { nextConnect } from '../store'
 
-import { addImageAnnotation } from '../ducks/images'
+import {
+  addImageAnnotation,
+  drawnLayersEdited,
+  drawnLayersDeleted
+} from '../ducks/images'
 
 class Viewer extends Component {
   render() {
@@ -57,24 +61,32 @@ class Viewer extends Component {
       },
       edit: {
         featureGroup: this.drawnItems
-      }
+      },
+      position: 'topright'
     })
 
     map.addControl(drawControl)
     map.on('draw:created', this.dispatchDraw.bind(this))
-    // map.on('draw:edited', save)
-    // map.on('draw:deleted', save)
+    map.on('draw:edited', this.dispatchDraw.bind(this))
+    map.on('draw:deleted', this.dispatchDraw.bind(this))
 
     this.updateMap()
   }
 
-  dispatchDraw(annotation) {
-    this.props.dispatch(
-      addImageAnnotation({
-        image: this.props.name,
-        note: annotation
-      })
-    )
+  dispatchDraw(drawEvent) {
+    const { dispatch: d } = this.props
+    console.info(drawEvent)
+    if (drawEvent.type == 'draw:created')
+      d(
+        addImageAnnotation({
+          image: this.props.name,
+          note: drawEvent
+        })
+      )
+    if (drawEvent.type == 'draw:edited')
+      d(drawnLayersEdited(this.props.name, drawEvent.layers))
+    if (drawEvent.type == 'draw:deleted')
+      d(drawnLayersDeleted(this.props.name, drawEvent.layers))
   }
 
   componentDidUpdate(prevProps, prevState) {
